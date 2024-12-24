@@ -1,11 +1,22 @@
 import { NestFactory } from '@nestjs/core';
-import { Module, Controller, Get, Query, Post, Body, Res } from '@nestjs/common';
+import { Module, Controller, Get, Query, Post, Body, Res, ParseIntPipe } from '@nestjs/common';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
 import * as cors from 'cors';
 import { Response } from 'express';
 import { configSwagger } from './api-docs.config';
+import { ApiProperty, ApiQuery, ApiOkResponse, ApiBadRequestResponse } from '@nestjs/swagger';
+
+class SumResponse {
+  @ApiProperty({ description: 'Tổng của hai số a và b'})
+  sum: number;
+}
+enum BValues {
+  Three = 3,
+  Five = 5,
+  Seven = 7,
+}
 
 // Định nghĩa controller chính của ứng dụng
 @Controller()
@@ -32,9 +43,16 @@ class AppController {
 
   // Định nghĩa endpoint GET /sum
   @Get('sum')
-  getSum(@Query('a') a: string, @Query('b') b: string) {
-    const sum = parseInt(a) + parseInt(b); // Tính tổng của hai số a và b
-    return { sum }; // Trả về kết quả tổng dưới dạng JSON
+  @ApiQuery({ name: 'a', type: Number, description: 'Số hạng thứ nhất' })
+  @ApiQuery({ name: 'b', enum: BValues, description: 'Số hạng thứ hai (3, 5 hoặc 7)' })
+  @ApiOkResponse({ description: 'Trả về tổng của a và b', type: SumResponse })
+  @ApiBadRequestResponse({ description: 'Đầu vào không hợp lệ. a phải là số và b phải là 3, 5 hoặc 7.' })
+  getSum(
+    @Query('a', ParseIntPipe) a: number,
+    @Query('b') b: BValues, // Sử dụng enum ở đây
+  ): SumResponse {
+    const sum = a + Number(b);
+    return { sum };
   }
 
   // Định nghĩa endpoint POST /echo
